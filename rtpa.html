@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PollHub · Real-Time Poll App</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <!-- Chart.js for live results -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <style>
+        /* ----- CSS Variables (Modern Gradient Theme) ----- */
+        :root {
+            --primary: #6c5ce7;
+            --primary-dark: #5a4bd1;
+            --primary-light: #a29bfe;
+            --secondary: #00b894;
+            --secondary-light: #e0f7f1;
+            --accent: #fd79a8;
+            --gradient: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 50%, #fd79a8 100%);
+            --gradient-dark: linear-gradient(135deg, #2d1b69 0%, #4a3a8a 50%, #6c3a5e 100%);
+            --white: #ffffff;
+            --light-gray: #f8f9fa;
+            --gray: #e9ecef;
+            --dark: #1a1a2e;
+            --text: #2d3436;
+            --text-light: #636e72;
+            --shadow: 0 8px 32px rgba(108, 92, 231, 0.15);
+            --radius: 16px;
+            --radius-sm: 8px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        [data-theme="dark"] {
+            --white: #1a1a2e;
+            --light-gray: #16213e;
+            --gray: #2d2d44;
+            --text: #e8e8f0;
+            --text-light: #a0a0b8;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--light-gray);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background var(--transition), color var(--transition);
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--gray);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1.5rem;
+        }
+
+        /* ----- Utility ----- */
+        .flex {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.5rem;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .text-muted {
+            color: var(--text-light);
+        }
+        .mb-1 {
+            margin-bottom: 1rem;
+        }
+        .mb-2 {
+            margin-bottom: 2rem;
+        }
+        .mt-2 {
+            margin-top: 2rem;
+        }
+        .gap-1 {
+            gap: 0.8rem;
+        }
+
+        /* ----- Buttons ----- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.65rem 1.6rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            background: var(--gray);
+            color: var(--text);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(108, 92, 231, 0.35);
+        }
+        .btn-secondary {
+            background: var(--secondary);
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #00a381;
+            transform: translateY(-2px);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        .btn-outline:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+        .btn-danger {
+            background: #e53e3e;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #c53030;
+        }
+        .btn-sm {
+            padding: 0.35rem 1.2rem;
+            font-size: 0.85rem;
+        }
+        .btn-success {
+            background: var(--secondary);
+            color: #fff;
+        }
+        .btn-success:hover {
+            background: #00a381;
+        }
+
+        /* ----- Cards ----- */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            transition: var(--transition);
+            border: 1px solid rgba(108, 92, 231, 0.06);
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(108, 92, 231, 0.18);
+        }
+
+        /* ----- Navbar ----- */
+        .navbar {
+            background: var(--white);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.04);
+            padding: 0.7rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: background var(--transition);
+        }
+        .navbar .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-decoration: none;
+        }
+        .logo i {
+            font-size: 1.8rem;
+            -webkit-text-fill-color: var(--primary);
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            list-style: none;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text);
+            font-weight: 500;
+            transition: var(--transition);
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        .menu-toggle {
+            display: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text);
+        }
+
+        /* ----- Hero ----- */
+        .hero {
+            background: var(--gradient);
+            padding: 4rem 0 3.5rem;
+            border-radius: 0 0 40px 40px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 60%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.04);
+            transform: rotate(15deg);
+            pointer-events: none;
+        }
+        .hero .container {
+            position: relative;
+            z-index: 1;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 0.5rem;
+        }
+        .hero h1 span {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0 0.5rem;
+            border-radius: 8px;
+        }
+        .hero p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 500px;
+            margin: 1rem 0 1.8rem;
+        }
+        .hero .btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .hero .btn-primary {
+            background: #fff;
+            color: var(--primary);
+        }
+        .hero .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        /* ----- Poll Cards ----- */
+        .poll-card {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border-left: 4px solid var(--primary);
+        }
+        .poll-card:hover {
+            transform: translateY(-4px);
+        }
+        .poll-card .poll-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+        }
+        .poll-card .poll-meta {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        .poll-option {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.5rem 0.8rem;
+            margin: 0.3rem 0;
+            border-radius: var(--radius-sm);
+            background: var(--light-gray);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .poll-option:hover {
+            background: var(--primary-light);
+            color: #fff;
+        }
+        .poll-option .vote-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--gray);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .poll-option .vote-bar .fill {
+            height: 100%;
+            background: var(--gradient);
+            border-radius: 10px;
+            transition: width 0.6s ease;
+        }
+        .poll-option .vote-pct {
+            font-weight: 600;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* ----- Dashboard Sidebar ----- */
+        .dashboard-layout {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .sidebar {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 1.5rem 0.8rem;
+            box-shadow: var(--shadow);
+            height: fit-content;
+        }
+        .sidebar .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.7rem 1rem;
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .sidebar .menu-item:hover,
+        .sidebar .menu-item.active {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+        .sidebar .menu-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* ----- Forms ----- */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+            color: var(--text);
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.7rem 1rem;
+            border: 2px solid var(--gray);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            transition: var(--transition);
+            background: var(--white);
+            color: var(--text);
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(108, 92, 231, 0.1);
+        }
+
+        /* ----- Badges ----- */
+        .badge {
+            padding: 0.2rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .badge-success {
+            background: var(--secondary-light);
+            color: var(--secondary);
+        }
+        .badge-warning {
+            background: #fff3cd;
+            color: #b8860b;
+        }
+        .badge-danger {
+            background: #fdd;
+            color: #c0392b;
+        }
+        .badge-primary {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        /* ----- Footer ----- */
+        .footer {
+            background: var(--dark);
+            color: #cbd5e0;
+            padding: 3rem 0 1.5rem;
+            margin-top: 3rem;
+            border-radius: 40px 40px 0 0;
+        }
+        .footer a {
+            color: #cbd5e0;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .footer a:hover {
+            color: #fff;
+        }
+        .footer h5 {
+            color: #fff;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        .footer .social i {
+            font-size: 1.3rem;
+            margin-right: 0.8rem;
+            transition: var(--transition);
+        }
+        .footer .social i:hover {
+            color: #fff;
+        }
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 1.5rem;
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #94a3b8;
+        }
+
+        /* ----- Responsive ----- */
+        @media (max-width: 992px) {
+            .dashboard-layout {
+                grid-template-columns: 1fr;
+            }
+            .hero h1 {
+                font-size: 2.2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                padding: 1rem 0;
+                gap: 0.8rem;
+            }
+            .nav-links.open {
+                display: flex;
+            }
+            .menu-toggle {
+                display: block;
+            }
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            .container {
+                padding: 0 1rem;
+            }
+        }
+
+        /* ----- Theme Toggle ----- */
+        .theme-toggle {
+            background: var(--gray);
+            border: none;
+            border-radius: 50px;
+            padding: 0.4rem 1rem;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+        }
+        .theme-toggle:hover {
+            background: var(--primary-light);
+        }
+
+        /* Chart container */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+        .modal {
+            background: var(--white);
+            border-radius: var(--radius);
+            padding: 2rem;
+            max-width: 550px;
+            width: 92%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal .close-modal {
+            float: right;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+        }
+        .modal .close-modal:hover {
+            color: var(--text);
+        }
+
+        /* Poll detail */
+        .poll-detail-header {
+            background: var(--gradient);
+            color: #fff;
+            padding: 2rem;
+            border-radius: var(--radius);
+            margin-bottom: 1.5rem;
+        }
+        .poll-detail-header h2 {
+            font-size: 2rem;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate {
+            animation: fadeInUp 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- ===== NAVBAR ===== -->
+    <nav class="navbar" id="navbar">
+        <div class="container">
+            <a href="#" class="logo" onclick="showPage('home')"><i class="fas fa-poll"></i> PollHub</a>
+            <div class="menu-toggle" id="menuToggle"><i class="fas fa-bars"></i></div>
+            <ul class="nav-links" id="navLinks">
+                <li><a onclick="showPage('home')">Home</a></li>
+                <li><a onclick="showPage('explore')">Explore</a></li>
+                <li><a onclick="showPage('create')">Create Poll</a></li>
+                <li><a onclick="showPage('dashboard')">Dashboard</a></li>
+                <li>
+                    <button class="theme-toggle" onclick="toggleTheme()">
+                        <i class="fas fa-moon" id="themeIcon"></i>
+                        <span id="themeLabel">Dark</span>
+                    </button>
+                </li>
+                <li id="authNavLink">
+                    <a class="btn btn-primary btn-sm" onclick="showPage('login')"><i class="fas fa-sign-in-alt"></i> Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main id="mainContent"></main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <div class="container">
+            <div class="grid-3">
+                <div>
+                    <h5><i class="fas fa-poll" style="color:var(--primary);"></i> PollHub</h5>
+                    <p style="margin-top:0.5rem;">Real-time polling made simple. Create, vote, and see results instantly.</p>
+                    <div class="social" style="margin-top:1rem;">
+                        <i class="fab fa-twitter"></i>
+                        <i class="fab fa-github"></i>
+                        <i class="fab fa-linkedin"></i>
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                </div>
+                <div>
+                    <h5>Quick Links</h5>
+                    <p><a onclick="showPage('home')">Home</a></p>
+                    <p><a onclick="showPage('explore')">Explore Polls</a></p>
+                    <p><a onclick="showPage('create')">Create Poll</a></p>
+                    <p><a onclick="showPage('dashboard')">Dashboard</a></p>
+                </div>
+                <div>
+                    <h5>Contact</h5>
+                    <p><i class="fas fa-envelope"></i> support@pollhub.com</p>
+                    <p><i class="fas fa-map-marker-alt"></i> 123 Poll Street, Web City</p>
+                </div>
+            </div>
+            <div class="footer-bottom">&copy; 2026 PollHub · Real-Time Poll App</div>
+        </div>
+    </footer>
+
+    <script>
+        // ============================================================
+        //  POLLHUB — REAL-TIME POLL APPLICATION
+        //  Full CRUD, Authentication, Live Voting, Charts
+        // ============================================================
+
+        // ----- DATABASE (localStorage) -----
+        const DB = {
+            getUsers() {
+                return JSON.parse(localStorage.getItem('pollhub_users')) || [];
+            },
+            setUsers(users) {
+                localStorage.setItem('pollhub_users', JSON.stringify(users));
+            },
+            getPolls() {
+                return JSON.parse(localStorage.getItem('pollhub_polls')) || [];
+            },
+            setPolls(polls) {
+                localStorage.setItem('pollhub_polls', JSON.stringify(polls));
+            },
+            getVotes() {
+                return JSON.parse(localStorage.getItem('pollhub_votes')) || {};
+            },
+            setVotes(votes) {
+                localStorage.setItem('pollhub_votes', JSON.stringify(votes));
+            },
+            getCurrentUser() {
+                return JSON.parse(sessionStorage.getItem('pollhub_user')) || null;
+            },
+            setCurrentUser(user) {
+                sessionStorage.setItem('pollhub_user', JSON.stringify(user));
+            },
+            clearSession() {
+                sessionStorage.removeItem('pollhub_user');
+            }
+        };
+
+        // ----- SEED DATA -----
+        function seedData() {
+            if (DB.getUsers().length === 0) {
+                DB.setUsers([
+                    { id: 1, username: 'admin', password: 'admin123', name: 'Admin User', role: 'admin' },
+                    { id: 2, username: 'alice', password: 'alice123', name: 'Alice', role: 'user' },
+                    { id: 3, username: 'bob', password: 'bob123', name: 'Bob', role: 'user' },
+                ]);
+            }
+            if (DB.getPolls().length === 0) {
+                const now = Date.now();
+                DB.setPolls([{
+                    id: 1,
+                    title: 'Best Programming Language?',
+                    description: 'Vote for your favorite programming language.',
+                    options: ['JavaScript', 'Python', 'Java', 'C++'],
+                    votes: { 0: 12, 1: 18, 2: 8, 3: 5 },
+                    createdBy: 'admin',
+                    createdAt: now - 3600000,
+                    expiresAt: now + 86400000 * 7,
+                    isPublic: true,
+                    isAnonymous: false,
+                    isMultiChoice: false,
+                    status: 'active'
+                }, {
+                    id: 2,
+                    title: 'Favorite Social Media?',
+                    description: 'Which platform do you use most?',
+                    options: ['Instagram', 'Twitter/X', 'TikTok', 'YouTube'],
+                    votes: { 0: 22, 1: 15, 2: 19, 3: 30 },
+                    createdBy: 'alice',
+                    createdAt: now - 7200000,
+                    expiresAt: now + 86400000 * 3,
+                    isPublic: true,
+                    isAnonymous: true,
+                    isMultiChoice: false,
+                    status: 'active'
+                }, {
+                    id: 3,
+                    title: 'Best Pizza Topping?',
+                    description: 'Cast your vote for the ultimate pizza topping.',
+                    options: ['Pepperoni', 'Mushroom', 'Olives', 'Pineapple'],
+                    votes: { 0: 45, 1: 12, 2: 8, 3: 25 },
+                    createdBy: 'bob',
+                    createdAt: now - 1800000,
+                    expiresAt: now + 86400000 * 5,
+                    isPublic: true,
+                    isAnonymous: false,
+                    isMultiChoice: false,
+                    status: 'active'
+                }]);
+            }
+            if (Object.keys(DB.getVotes()).length === 0) {
+                DB.setVotes({});
+            }
+        }
+
+        // ----- STATE -----
+        let currentUser = DB.getCurrentUser();
+        let currentPage = 'home';
+        let currentPollId = null;
+        let chartInstance = null;
+
+        // ----- DOM REFS -----
+        const main = document.getElementById('mainContent');
+        const navLinks = document.getElementById('navLinks');
+        const menuToggle = document.getElementById('menuToggle');
+
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('open');
+        });
+
+        // ----- THEME -----
+        function getTheme() {
+            return localStorage.getItem('pollhub_theme') || 'light';
+        }
+
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('pollhub_theme', theme);
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
+            if (theme === 'dark') {
+                icon.className = 'fas fa-sun';
+                label.textContent = 'Light';
+            } else {
+                icon.className = 'fas fa-moon';
+                label.textContent = 'Dark';
+            }
+        }
+
+        function toggleTheme() {
+            const current = getTheme();
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+        setTheme(getTheme());
+
+        // ----- NAVIGATION -----
+        function showPage(page, data) {
+            currentPage = page;
+            if (data) currentPollId = data;
+            renderPage();
+            navLinks.classList.remove('open');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function renderPage() {
+            const user = DB.getCurrentUser();
+            // Update auth nav
+            if (user) {
+                document.getElementById('authNavLink').innerHTML =
+                    `<span style="color:var(--text);font-weight:500;"><i class="fas fa-user-circle"></i> ${user.name}</span>
+                               <a class="btn btn-danger btn-sm" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a>`;
+            } else {
+                document.getElementById('authNavLink').innerHTML =
+                    `<a class="btn btn-primary btn-sm" onclick="showPage('login')"><i class="fas fa-sign-in-alt"></i> Login</a>`;
+            }
+
+            switch (currentPage) {
+                case 'home':
+                    renderHome();
+                    break;
+                case 'explore':
+                    renderExplore();
+                    break;
+                case 'create':
+                    renderCreatePoll();
+                    break;
+                case 'poll':
+                    renderPollDetail(currentPollId);
+                    break;
+                case 'dashboard':
+                    renderDashboard();
+                    break;
+                case 'login':
+                    renderLogin();
+                    break;
+                case 'register':
+                    renderRegister();
+                    break;
+                default:
+                    renderHome();
+            }
+        }
+
+        // ----- AUTH -----
+        function logout() {
+            DB.clearSession();
+            currentUser = null;
+            showPage('home');
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+            if (!username || !password) { alert('Please fill all fields'); return; }
+            const users = DB.getUsers();
+            const user = users.find(u => u.username === username && u.password === password);
+            if (!user) { alert('Invalid credentials!'); return; }
+            DB.setCurrentUser(user);
+            currentUser = user;
+            alert(`Welcome ${user.name}!`);
+            showPage('home');
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const username = document.getElementById('regUsername').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+            if (!name || !username || !password) { alert('Please fill all fields'); return; }
+            const users = DB.getUsers();
+            if (users.find(u => u.username === username)) { alert('Username already exists!'); return; }
+            users.push({ id: Date.now(), username, password, name, role: 'user' });
+            DB.setUsers(users);
+            alert('Registration successful! Please login.');
+            showPage('login');
+        }
+
+        // ----- POLL HELPERS -----
+        function getTotalVotes(poll) {
+            return Object.values(poll.votes || {}).reduce((a, b) => a + b, 0);
+        }
+
+        function getPollStatus(poll) {
+            if (poll.status === 'expired') return 'expired';
+            if (poll.expiresAt && Date.now() > poll.expiresAt) return 'expired';
+            return 'active';
+        }
+
+        function updatePollStatus(poll) {
+            if (poll.expiresAt && Date.now() > poll.expiresAt) {
+                poll.status = 'expired';
+            }
+            return poll;
+        }
+
+        function hasUserVoted(pollId) {
+            const votes = DB.getVotes();
+            const user = DB.getCurrentUser();
+            if (!user) return false;
+            return votes[pollId] && votes[pollId][user.id] !== undefined;
+        }
+
+        function getUserVote(pollId) {
+            const votes = DB.getVotes();
+            const user = DB.getCurrentUser();
+            if (!user) return -1;
+            return votes[pollId] && votes[pollId][user.id] !== undefined ? votes[pollId][user.id] : -1;
+        }
+
+        // ----- RENDER: HOME -----
+        function renderHome() {
+            const polls = DB.getPolls().filter(p => getPollStatus(p) === 'active').slice(0, 3);
+            main.innerHTML = `
+                <section class="hero">
+                    <div class="container">
+                        <h1>Real-Time <span>Polling</span> Made Simple</h1>
+                        <p>Create polls, vote instantly, and watch results update live. The easiest way to gather opinions.</p>
+                        <div class="flex">
+                            <a class="btn btn-primary" onclick="showPage('create')"><i class="fas fa-plus-circle"></i> Create Poll</a>
+                            <a class="btn" onclick="showPage('explore')"><i class="fas fa-search"></i> Explore Polls</a>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="container mt-2">
+                    <div class="grid-3">
+                        <div class="card text-center">
+                            <i class="fas fa-users" style="font-size:2.5rem;color:var(--primary);"></i>
+                            <h3>Vote Anonymously</h3>
+                            <p class="text-muted">Cast your vote without revealing your identity.</p>
+                        </div>
+                        <div class="card text-center">
+                            <i class="fas fa-chart-bar" style="font-size:2.5rem;color:var(--secondary);"></i>
+                            <h3>Live Results</h3>
+                            <p class="text-muted">See results update in real-time with interactive charts.</p>
+                        </div>
+                        <div class="card text-center">
+                            <i class="fas fa-share-alt" style="font-size:2.5rem;color:var(--accent);"></i>
+                            <h3>Share Anywhere</h3>
+                            <p class="text-muted">Share your polls via link and get more votes.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="container mt-2">
+                    <h2 class="section-title">🔥 Live Polls</h2>
+                    <div class="grid-2">
+                        ${polls.map(p => `
+                            <div class="poll-card animate">
+                                <div class="poll-title">${p.title}</div>
+                                <div class="poll-meta">${p.options.length} options · ${getTotalVotes(p)} votes</div>
+                                <div style="margin-top:0.8rem;">
+                                    ${p.options.map((opt, i) => `
+                                        <div class="poll-option" onclick="quickVote(${p.id}, ${i})">
+                                            <span>${opt}</span>
+                                            <span class="vote-pct">${getTotalVotes(p) > 0 ? Math.round((p.votes[i]||0)/getTotalVotes(p)*100) : 0}%</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                <a class="btn btn-primary btn-sm" onclick="showPage('poll', ${p.id})" style="margin-top:0.8rem;">View Details</a>
+                            </div>
+                        `).join('')}
+                        ${polls.length === 0 ? '<p class="text-muted">No active polls yet. Create one!</p>' : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // ----- RENDER: EXPLORE -----
+        function renderExplore() {
+            const polls = DB.getPolls();
+            const activePolls = polls.filter(p => getPollStatus(p) === 'active');
+            const expiredPolls = polls.filter(p => getPollStatus(p) === 'expired');
+
+            main.innerHTML = `
+                <div class="container mt-2">
+                    <h2 class="section-title">📊 Explore Polls</h2>
+                    <div class="flex" style="margin-bottom:1.5rem;">
+                        <input class="form-control" id="searchPolls" placeholder="Search polls..." style="max-width:300px;" oninput="filterPolls()" />
+                        <span class="badge badge-primary">${activePolls.length} Active</span>
+                        <span class="badge badge-danger">${expiredPolls.length} Expired</span>
+                    </div>
+                    <div id="pollList" class="grid-2">
+                        ${polls.map(p => renderPollCard(p)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPollCard(p) {
+            const status = getPollStatus(p);
+            const total = getTotalVotes(p);
+            const statusBadge = status === 'active' ? 'badge-success' : 'badge-danger';
+            return `
+                <div class="poll-card animate" data-title="${p.title.toLowerCase()}">
+                    <div class="flex-between">
+                        <div class="poll-title">${p.title}</div>
+                        <span class="badge ${statusBadge}">${status}</span>
+                    </div>
+                    <div class="poll-meta">${p.options.length} options · ${total} votes</div>
+                    <div style="margin:0.8rem 0;">
+                        ${p.options.slice(0,2).map(opt => `<span class="badge" style="background:var(--gray);margin-right:0.3rem;">${opt}</span>`).join('')}
+                        ${p.options.length > 2 ? `<span class="badge">+${p.options.length-2} more</span>` : ''}
+                    </div>
+                    <a class="btn btn-primary btn-sm" onclick="showPage('poll', ${p.id})">View Poll</a>
+                </div>
+            `;
+        }
+
+        function filterPolls() {
+            const query = document.getElementById('searchPolls').value.toLowerCase();
+            const cards = document.querySelectorAll('#pollList .poll-card');
+            cards.forEach(card => {
+                const title = card.dataset.title || '';
+                card.style.display = title.includes(query) ? '' : 'none';
+            });
+        }
+
+        // ----- RENDER: CREATE POLL -----
+        function renderCreatePoll() {
+            const user = DB.getCurrentUser();
+            if (!user) {
+                main.innerHTML = `
+                    <div class="container mt-2">
+                        <div class="card text-center" style="max-width:500px;margin:0 auto;">
+                            <h3><i class="fas fa-lock"></i> Please Login</h3>
+                            <p class="text-muted">You need to login to create a poll.</p>
+                            <button class="btn btn-primary" onclick="showPage('login')">Login</button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            main.innerHTML = `
+                <div class="container mt-2" style="max-width:700px;">
+                    <div class="card">
+                        <h3><i class="fas fa-plus-circle" style="color:var(--primary);"></i> Create New Poll</h3>
+                        <form onsubmit="createPoll(event)">
+                            <div class="form-group">
+                                <label>Poll Title</label>
+                                <input class="form-control" id="pollTitle" placeholder="Enter poll title" required />
+                            </div>
+                            <div class="form-group">
+                                <label>Description</label>
+                                <input class="form-control" id="pollDesc" placeholder="Describe your poll" />
+                            </div>
+                            <div class="form-group">
+                                <label>Options</label>
+                                <div id="optionsContainer">
+                                    <div class="flex" style="margin-bottom:0.5rem;">
+                                        <input class="form-control" placeholder="Option 1" required />
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                                    </div>
+                                    <div class="flex" style="margin-bottom:0.5rem;">
+                                        <input class="form-control" placeholder="Option 2" required />
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-outline btn-sm" onclick="addOption()"><i class="fas fa-plus"></i> Add Option</button>
+                            </div>
+                            <div class="form-group">
+                                <label>Expiry Date</label>
+                                <input class="form-control" type="datetime-local" id="pollExpiry" />
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="pollPublic" checked /> Public Poll
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="pollAnonymous" /> Anonymous Voting
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;"><i class="fas fa-rocket"></i> Create Poll</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addOption() {
+            const container = document.getElementById('optionsContainer');
+            const div = document.createElement('div');
+            div.className = 'flex';
+            div.style.marginBottom = '0.5rem';
+            div.innerHTML = `
+                <input class="form-control" placeholder="Option ${container.children.length + 1}" required />
+                <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        function createPoll(e) {
+            e.preventDefault();
+            const title = document.getElementById('pollTitle').value.trim();
+            const desc = document.getElementById('pollDesc').value.trim();
+            const expiry = document.getElementById('pollExpiry').value;
+            const isPublic = document.getElementById('pollPublic').checked;
+            const isAnonymous = document.getElementById('pollAnonymous').checked;
+            const optionInputs = document.querySelectorAll('#optionsContainer input');
+            const options = Array.from(optionInputs).map(inp => inp.value.trim()).filter(v => v);
+
+            if (!title || options.length < 2) {
+                alert('Please provide a title and at least 2 options.');
+                return;
+            }
+
+            const user = DB.getCurrentUser();
+            const polls = DB.getPolls();
+            const newPoll = {
+                id: Date.now(),
+                title,
+                description: desc,
+                options,
+                votes: options.reduce((acc, _, i) => { acc[i] = 0; return acc; }, {}),
+                createdBy: user ? user.username : 'anonymous',
+                createdAt: Date.now(),
+                expiresAt: expiry ? new Date(expiry).getTime() : Date.now() + 86400000 * 7,
+                isPublic,
+                isAnonymous,
+                isMultiChoice: false,
+                status: 'active'
+            };
+            polls.push(newPoll);
+            DB.setPolls(polls);
+            alert('✅ Poll created successfully!');
+            showPage('poll', newPoll.id);
+        }
+
+        // ----- RENDER: POLL DETAIL -----
+        function renderPollDetail(pollId) {
+            const polls = DB.getPolls();
+            const poll = polls.find(p => p.id === pollId);
+            if (!poll) {
+                main.innerHTML = `<div class="container mt-2"><h3>Poll not found</h3><a class="btn btn-primary" onclick="showPage('explore')">Go Back</a></div>`;
+                return;
+            }
+
+            const status = getPollStatus(poll);
+            const total = getTotalVotes(poll);
+            const user = DB.getCurrentUser();
+            const hasVoted = user ? hasUserVoted(poll.id) : false;
+            const userVote = user ? getUserVote(poll.id) : -1;
+            const isCreator = user && poll.createdBy === user.username;
+            const isExpired = status === 'expired';
+
+            // Prepare chart data
+            const labels = poll.options;
+            const data = poll.options.map((_, i) => poll.votes[i] || 0);
+            const colors = ['#6c5ce7', '#00b894', '#fd79a8', '#fdcb6e', '#0984e3', '#e17055'];
+
+            main.innerHTML = `
+                <div class="container mt-2">
+                    <div class="poll-detail-header">
+                        <div class="flex-between">
+                            <h2>${poll.title}</h2>
+                            <span class="badge ${status === 'active' ? 'badge-success' : 'badge-danger'}">${status}</span>
+                        </div>
+                        <p style="opacity:0.9;">${poll.description || 'No description provided.'}</p>
+                        <div class="flex" style="margin-top:0.5rem;font-size:0.9rem;opacity:0.8;">
+                            <span><i class="fas fa-user"></i> ${poll.createdBy}</span>
+                            <span><i class="fas fa-clock"></i> ${new Date(poll.createdAt).toLocaleDateString()}</span>
+                            <span><i class="fas fa-vote-yea"></i> ${total} votes</span>
+                            ${poll.expiresAt ? `<span><i class="fas fa-hourglass-end"></i> ${new Date(poll.expiresAt).toLocaleDateString()}</span>` : ''}
+                        </div>
+                        ${isCreator ? `<div class="flex" style="margin-top:0.8rem;"><button class="btn btn-danger btn-sm" onclick="deletePoll(${poll.id})"><i class="fas fa-trash"></i> Delete Poll</button></div>` : ''}
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <h4><i class="fas fa-vote-yea"></i> Cast Your Vote</h4>
+                            ${isExpired ? `<p class="text-muted">This poll has expired. No more votes allowed.</p>` : ''}
+                            ${hasVoted && !isExpired ? `<p class="text-muted"><i class="fas fa-check-circle" style="color:var(--secondary);"></i> You've already voted on this poll.</p>` : ''}
+                            ${!hasVoted && !isExpired ? `
+                                <div id="voteOptions">
+                                    ${poll.options.map((opt, i) => `
+                                        <div class="poll-option" onclick="castVote(${poll.id}, ${i})">
+                                            <span>${opt}</span>
+                                            <span class="vote-pct">${total > 0 ? Math.round((poll.votes[i]||0)/total*100) : 0}%</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : `
+                                <div>
+                                    ${poll.options.map((opt, i) => `
+                                        <div class="poll-option" style="${userVote === i ? 'border:2px solid var(--secondary);' : ''}">
+                                            <span>${opt} ${userVote === i ? '✅' : ''}</span>
+                                            <span class="vote-pct">${total > 0 ? Math.round((poll.votes[i]||0)/total*100) : 0}%</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
+                            ${!isExpired && !hasVoted ? `<button class="btn btn-success btn-sm" onclick="castVote(${poll.id}, -1)" style="margin-top:0.5rem;"><i class="fas fa-sync"></i> Refresh</button>` : ''}
+                        </div>
+
+                        <div class="card">
+                            <h4><i class="fas fa-chart-bar"></i> Live Results</h4>
+                            <div class="chart-container">
+                                <canvas id="pollChart"></canvas>
+                            </div>
+                            <div style="margin-top:1rem;">
+                                ${poll.options.map((opt, i) => `
+                                    <div class="flex-between" style="font-size:0.9rem;padding:0.2rem 0;">
+                                        <span>${opt}</span>
+                                        <span>${poll.votes[i]||0} votes (${total > 0 ? Math.round((poll.votes[i]||0)/total*100) : 0}%)</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="flex" style="margin-top:0.8rem;">
+                                <button class="btn btn-outline btn-sm" onclick="copyPollLink(${poll.id})"><i class="fas fa-copy"></i> Copy Link</button>
+                                <button class="btn btn-secondary btn-sm" onclick="sharePoll(${poll.id})"><i class="fas fa-share-alt"></i> Share</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-2">
+                        <h4>📊 Analytics</h4>
+                        <div class="grid-3">
+                            <div class="stat-card"><div class="number">${total}</div><div class="label">Total Votes</div></div>
+                            <div class="stat-card"><div class="number">${poll.options.length}</div><div class="label">Options</div></div>
+                            <div class="stat-card"><div class="number">${isExpired ? 'Expired' : 'Active'}</div><div class="label">Status</div></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Render chart
+            setTimeout(() => {
+                const ctx = document.getElementById('pollChart');
+                if (!ctx) return;
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: poll.options,
+                        datasets: [{
+                            label: 'Votes',
+                            data: poll.options.map((_, i) => poll.votes[i] || 0),
+                            backgroundColor: poll.options.map((_, i) => colors[i % colors.length]),
+                            borderRadius: 8,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, grid: { display: false } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }, 100);
+        }
+
+        // ----- VOTING -----
+        function castVote(pollId, optionIndex) {
+            const user = DB.getCurrentUser();
+            if (!user) { alert('Please login to vote.'); showPage('login'); return; }
+
+            const polls = DB.getPolls();
+            const poll = polls.find(p => p.id === pollId);
+            if (!poll) return;
+            if (getPollStatus(poll) === 'expired') { alert('This poll has expired.'); return; }
+            if (hasUserVoted(pollId)) { alert('You already voted on this poll!'); return; }
+
+            // Simulate real-time update
+            poll.votes[optionIndex] = (poll.votes[optionIndex] || 0) + 1;
+            DB.setPolls(polls);
+
+            // Save user vote
+            const votes = DB.getVotes();
+            if (!votes[pollId]) votes[pollId] = {};
+            votes[pollId][user.id] = optionIndex;
+            DB.setVotes(votes);
+
+            // Update chart if on poll page
+            if (currentPage === 'poll' && currentPollId === pollId) {
+                renderPollDetail(pollId);
+            } else {
+                showPage('poll', pollId);
+            }
+            alert('✅ Vote submitted successfully!');
+        }
+
+        function quickVote(pollId, optionIndex) {
+            castVote(pollId, optionIndex);
+        }
+
+        // ----- POLL MANAGEMENT -----
+        function deletePoll(pollId) {
+            if (!confirm('Delete this poll permanently?')) return;
+            let polls = DB.getPolls();
+            polls = polls.filter(p => p.id !== pollId);
+            DB.setPolls(polls);
+            alert('Poll deleted.');
+            showPage('explore');
+        }
+
+        function copyPollLink(pollId) {
+            const url = `${window.location.origin}${window.location.pathname}?poll=${pollId}`;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Poll link copied to clipboard!');
+            }).catch(() => {
+                prompt('Copy this link:', url);
+            });
+        }
+
+        function sharePoll(pollId) {
+            const url = `${window.location.origin}${window.location.pathname}?poll=${pollId}`;
+            if (navigator.share) {
+                navigator.share({ title: 'Check out this poll!', url });
+            } else {
+                copyPollLink(pollId);
+            }
+        }
+
+        // ----- DASHBOARD -----
+        function renderDashboard() {
+            const user = DB.getCurrentUser();
+            if (!user) {
+                main.innerHTML =
+                    `<div class="container mt-2"><div class="card text-center"><h3>Please Login</h3><button class="btn btn-primary" onclick="showPage('login')">Login</button></div></div>`;
+                return;
+            }
+
+            const polls = DB.getPolls();
+            const userPolls = polls.filter(p => p.createdBy === user.username);
+            const userVotes = Object.keys(DB.getVotes()).filter(pId => DB.getVotes()[pId] && DB.getVotes()[pId][user.id] !==
+            undefined);
+            const isAdmin = user.role === 'admin';
+
+            main.innerHTML = `
+                <div class="container">
+                    <div class="dashboard-layout">
+                        <aside class="sidebar">
+                            <div class="menu-item active" onclick="showDashboardSection('overview')"><i class="fas fa-tachometer-alt"></i> Overview</div>
+                            ${!isAdmin ? `<div class="menu-item" onclick="showDashboardSection('mypolls')"><i class="fas fa-list"></i> My Polls</div>` : ''}
+                            <div class="menu-item" onclick="showDashboardSection('votes')"><i class="fas fa-vote-yea"></i> My Votes</div>
+                            ${isAdmin ? `<div class="menu-item" onclick="showDashboardSection('admin')"><i class="fas fa-user-shield"></i> Admin</div>` : ''}
+                        </aside>
+                        <div id="dashboardContent">
+                            ${getDashboardOverview(user, polls, userPolls, userVotes, isAdmin)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getDashboardOverview(user, polls, userPolls, userVotes, isAdmin) {
+            const totalPolls = polls.length;
+            const activePolls = polls.filter(p => getPollStatus(p) === 'active').length;
+            const totalVotes = polls.reduce((sum, p) => sum + getTotalVotes(p), 0);
+
+            return `
+                <div>
+                    <div class="grid-3">
+                        <div class="stat-card"><div class="number">${isAdmin ? totalPolls : userPolls.length}</div><div class="label">${isAdmin ? 'Total Polls' : 'My Polls'}</div></div>
+                        <div class="stat-card"><div class="number">${isAdmin ? activePolls : userPolls.filter(p=>getPollStatus(p)==='active').length}</div><div class="label">Active</div></div>
+                        <div class="stat-card"><div class="number">${isAdmin ? totalVotes : userVotes.length}</div><div class="label">${isAdmin ? 'Total Votes' : 'Votes Cast'}</div></div>
+                    </div>
+                    <div class="card mt-2">
+                        <h4>${isAdmin ? 'All Polls' : 'My Polls'}</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <tr><th>Title</th><th>Options</th><th>Votes</th><th>Status</th><th>Action</th></tr>
+                                ${(isAdmin ? polls : userPolls).map(p => `
+                                    <tr>
+                                        <td>${p.title}</td>
+                                        <td>${p.options.length}</td>
+                                        <td>${getTotalVotes(p)}</td>
+                                        <td><span class="badge ${getPollStatus(p)==='active'?'badge-success':'badge-danger'}">${getPollStatus(p)}</span></td>
+                                        <td><a class="btn btn-sm btn-primary" onclick="showPage('poll', ${p.id})">View</a></td>
+                                    </tr>
+                                `).join('')}
+                                ${(isAdmin ? polls : userPolls).length === 0 ? '<tr><td colspan="5" class="text-muted">No polls found.</td></tr>' : ''}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function showDashboardSection(section) {
+            const user = DB.getCurrentUser();
+            if (!user) return;
+            const content = document.getElementById('dashboardContent');
+            if (!content) return;
+
+            const polls = DB.getPolls();
+            const userPolls = polls.filter(p => p.createdBy === user.username);
+            const userVotes = Object.keys(DB.getVotes()).filter(pId => DB.getVotes()[pId] && DB.getVotes()[pId][user.id] !==
+            undefined);
+            const isAdmin = user.role === 'admin';
+
+            if (section === 'overview') {
+                content.innerHTML = getDashboardOverview(user, polls, userPolls, userVotes, isAdmin);
+            } else if (section === 'mypolls') {
+                content.innerHTML = `
+                    <div class="card">
+                        <h4><i class="fas fa-list"></i> My Polls</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <tr><th>Title</th><th>Options</th><th>Votes</th><th>Status</th><th>Action</th></tr>
+                                ${userPolls.map(p => `
+                                    <tr>
+                                        <td>${p.title}</td>
+                                        <td>${p.options.length}</td>
+                                        <td>${getTotalVotes(p)}</td>
+                                        <td><span class="badge ${getPollStatus(p)==='active'?'badge-success':'badge-danger'}">${getPollStatus(p)}</span></td>
+                                        <td><a class="btn btn-sm btn-primary" onclick="showPage('poll', ${p.id})">View</a></td>
+                                    </tr>
+                                `).join('')}
+                                ${userPolls.length === 0 ? '<tr><td colspan="5" class="text-muted">You haven\'t created any polls yet.</td></tr>' : ''}
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (section === 'votes') {
+                const votedPolls = polls.filter(p => userVotes.includes(String(p.id)));
+                content.innerHTML = `
+                    <div class="card">
+                        <h4><i class="fas fa-vote-yea"></i> Polls I've Voted On</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <tr><th>Poll</th><th>Voted Option</th><th>Status</th><th>Action</th></tr>
+                                ${votedPolls.map(p => {
+                                    const vote = DB.getVotes()[p.id]?.[user.id];
+                                    return `<tr>
+                                        <td>${p.title}</td>
+                                        <td>${vote !== undefined ? p.options[vote] : 'N/A'}</td>
+                                        <td><span class="badge ${getPollStatus(p)==='active'?'badge-success':'badge-danger'}">${getPollStatus(p)}</span></td>
+                                        <td><a class="btn btn-sm btn-primary" onclick="showPage('poll', ${p.id})">View</a></td>
+                                    </tr>`;
+                                }).join('')}
+                                ${votedPolls.length === 0 ? '<tr><td colspan="4" class="text-muted">You haven\'t voted on any polls yet.</td></tr>' : ''}
+                            </table>
+                        </div>
+                    </div>
+                `;
+            } else if (section === 'admin' && isAdmin) {
+                content.innerHTML = `
+                    <div class="card">
+                        <h4><i class="fas fa-user-shield"></i> Admin Dashboard</h4>
+                        <div class="grid-3">
+                            <div class="stat-card"><div class="number">${DB.getUsers().length}</div><div class="label">Total Users</div></div>
+                            <div class="stat-card"><div class="number">${polls.length}</div><div class="label">Total Polls</div></div>
+                            <div class="stat-card"><div class="number">${polls.reduce((sum,p) => sum + getTotalVotes(p), 0)}</div><div class="label">Total Votes</div></div>
+                        </div>
+                        <div class="table-wrap mt-2">
+                            <h5>All Users</h5>
+                            <table>
+                                <tr><th>Username</th><th>Name</th><th>Role</th><th>Polls</th></tr>
+                                ${DB.getUsers().map(u => `
+                                    <tr>
+                                        <td>${u.username}</td>
+                                        <td>${u.name}</td>
+                                        <td>${u.role || 'user'}</td>
+                                        <td>${polls.filter(p=>p.createdBy===u.username).length}</td>
+                                    </tr>
+                                `).join('')}
+                            </table>
+                        </div>
+                    </div>
+                `;
+            }
+
+            document.querySelectorAll('.sidebar .menu-item').forEach(el => el.classList.remove('active'));
+            const items = document.querySelectorAll('.sidebar .menu-item');
+            const map = { 'overview': 0, 'mypolls': 1, 'votes': 2, 'admin': 3 };
+            const idx = map[section] || 0;
+            if (items[idx]) items[idx].classList.add('active');
+        }
+
+        // ----- RENDER: LOGIN -----
+        function renderLogin() {
+            main.innerHTML = `
+                <div class="container mt-2" style="max-width:420px;">
+                    <div class="card">
+                        <h3><i class="fas fa-sign-in-alt" style="color:var(--primary);"></i> Login</h3>
+                        <form onsubmit="handleLogin(event)">
+                            <div class="form-group"><label>Username</label><input class="form-control" id="loginUsername" required /></div>
+                            <div class="form-group"><label>Password</label><input class="form-control" id="loginPassword" type="password" required /></div>
+                            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Login</button>
+                            <p style="margin-top:0.8rem;text-align:center;">Don't have an account? <a onclick="showPage('register')" style="color:var(--primary);cursor:pointer;">Register</a></p>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ----- RENDER: REGISTER -----
+        function renderRegister() {
+            main.innerHTML = `
+                <div class="container mt-2" style="max-width:420px;">
+                    <div class="card">
+                        <h3><i class="fas fa-user-plus" style="color:var(--primary);"></i> Register</h3>
+                        <form onsubmit="handleRegister(event)">
+                            <div class="form-group"><label>Full Name</label><input class="form-control" id="regName" required /></div>
+                            <div class="form-group"><label>Username</label><input class="form-control" id="regUsername" required /></div>
+                            <div class="form-group"><label>Password</label><input class="form-control" id="regPassword" type="password" required /></div>
+                            <button type="submit" class="btn btn-success" style="width:100%;justify-content:center;">Register</button>
+                            <p style="margin-top:0.8rem;text-align:center;">Already have an account? <a onclick="showPage('login')" style="color:var(--primary);cursor:pointer;">Login</a></p>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ----- INIT -----
+        seedData();
+
+        // Check for poll ID in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const pollParam = urlParams.get('poll');
+        if (pollParam) {
+            currentPollId = parseInt(pollParam);
+            currentPage = 'poll';
+        }
+
+        renderPage();
+
+        // Make functions global
+        window.showPage = showPage;
+        window.showDashboardSection = showDashboardSection;
+        window.handleLogin = handleLogin;
+        window.handleRegister = handleRegister;
+        window.logout = logout;
+        window.createPoll = createPoll;
+        window.addOption = addOption;
+        window.castVote = castVote;
+        window.quickVote = quickVote;
+        window.deletePoll = deletePoll;
+        window.copyPollLink = copyPollLink;
+        window.sharePoll = sharePoll;
+        window.filterPolls = filterPolls;
+        window.toggleTheme = toggleTheme;
+        window.renderPollCard = renderPollCard;
+    </script>
+</body>
+</html>
